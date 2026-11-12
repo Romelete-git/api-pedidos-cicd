@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, Field
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 STATIC_DIR = Path(__file__).parent / "static"
 
 
