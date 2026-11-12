@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Infraestructura como código de la Actividad 6. Crea la aplicación de Elastic
+  Beanstalk "api-pedidos" y su entorno "api-pedidos-env", con una sola
+  instancia t3.micro. El entorno arranca con la aplicación de ejemplo y luego
+  CodePipeline despliega el código real.
+
+Parameters:
+  PlataformaPython:
+    Type: String
+    Description: >
+      Nombre exacto de la plataforma. Obtenlo en CloudShell con:
+      aws elasticbeanstalk list-available-solution-stacks --query "SolutionStacks[?contains(@, 'Python 3.12')]"
+  RolServicio:
+    Type: String
+    Default: aws-elasticbeanstalk-service-role
+  PerfilInstancia:
+    Type: String
+    Default: aws-elasticbeanstalk-ec2-role
+
+Resources:
+  Aplicacion:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: api-pedidos
+      Description: Plataforma de gestión de pedidos
+
+  Entorno:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      ApplicationName: !Ref Aplicacion
+      EnvironmentName: api-pedidos-env
+      SolutionStackName: !Ref PlataformaPython
+      Tier:
+        Name: WebServer
+        Type: Standard
+      OptionSettings:
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: EnvironmentType
+          Value: SingleInstance
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: ServiceRole
+          Value: !Ref RolServicio
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: IamInstanceProfile
+          Value: !Ref PerfilInstancia
+        # Estas dos opciones hacen que Elastic Beanstalk use plantillas de lanzamiento
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: DisableIMDSv1
+          Value: "true"
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: RootVolumeType
+          Value: gp3
+        - Namespace: aws:ec2:instances
+          OptionName: InstanceTypes
+          Value: t3.micro
+
+Outputs:
+  Direccion:
+    Description: IP del entorno (el dominio .elasticbeanstalk.com aparece en la consola)
+    Value: !Sub http://${Entorno.EndpointURL}

@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestión de Pedidos</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --papel: oklch(98.4% 0.004 95);
+    --superficie: oklch(100% 0 0);
+    --panel: oklch(96.2% 0.007 95);
+    --linea: oklch(90% 0.008 95);
+    --linea-fuerte: oklch(82% 0.01 95);
+    --tinta: oklch(23% 0.02 255);
+    --tinta-2: oklch(45% 0.018 255);
+    --tinta-3: oklch(55% 0.015 255);
+    --acento: oklch(45% 0.11 195);
+    --acento-hover: oklch(39% 0.1 195);
+    --acento-suave: oklch(94% 0.035 195);
+    --error: oklch(50% 0.17 27);
+    --error-suave: oklch(95.5% 0.03 27);
+    --ok: oklch(46% 0.11 150);
+
+    --e-pendiente: oklch(52% 0.11 75);    --e-pendiente-bg: oklch(95.5% 0.045 85);
+    --e-proceso: oklch(48% 0.13 250);     --e-proceso-bg: oklch(95% 0.03 250);
+    --e-enviado: oklch(48% 0.14 295);     --e-enviado-bg: oklch(95.5% 0.03 295);
+    --e-entregado: oklch(46% 0.11 150);   --e-entregado-bg: oklch(95.5% 0.04 150);
+
+    --radio: 8px;
+    --sombra: 0 1px 2px oklch(23% 0.02 255 / 0.05), 0 4px 14px -6px oklch(23% 0.02 255 / 0.1);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; }
+  html { accent-color: var(--acento); caret-color: var(--acento); }
+  body {
+    margin: 0; background: var(--papel); color: var(--tinta);
+    font: 400 0.9375rem/1.5 system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--acento-suave); color: var(--tinta); }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  svg { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .num { font-variant-numeric: tabular-nums; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* Barra superior */
+  .barra { background: var(--superficie); border-bottom: 1px solid var(--linea); }
+  .barra-in { max-width: 1280px; margin: 0 auto; padding: 18px 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .marca { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 34px; height: 34px; border-radius: 8px; background: var(--acento); color: #fff; display: grid; place-items: center; }
+  .logo svg { width: 21px; height: 21px; }
+  h1 { margin: 0; font-size: 1.375rem; font-weight: 650; letter-spacing: -0.015em; }
+  .version { margin-left: auto; font-size: 0.8125rem; color: var(--tinta-2); border: 1px solid var(--linea); border-radius: 999px; padding: 3px 10px; display: flex; align-items: center; gap: 6px; }
+  .version::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .version.caido::before { background: var(--error); }
+
+  /* Estructura */
+  main { max-width: 1280px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; grid-template-columns: 330px minmax(0, 1fr); align-items: start; }
+  @media (max-width: 980px) { main { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 16px; } .barra-in { padding: 14px 16px; } }
+  .tarjeta { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
+  h2 { margin: 0; font-size: 1.125rem; font-weight: 650; letter-spacing: -0.01em; }
+  .cabeza { padding: 18px 20px 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .cabeza p { margin: 2px 0 0; color: var(--tinta-2); font-size: 0.8125rem; }
+
+  /* Formulario */
+  form { padding: 6px 20px 20px; }
+  fieldset { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
+  legend { font-size: 0.8125rem; font-weight: 600; color: var(--tinta); padding: 0; margin-bottom: 8px; }
+  .campo { display: block; margin-top: 10px; }
+  .campo span { display: block; font-size: 0.8125rem; color: var(--tinta-2); margin-bottom: 4px; }
+  .campo span i { font-style: normal; color: var(--tinta-3); }
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  input, select {
+    font: inherit; color: var(--tinta); background: var(--superficie);
+    border: 1px solid var(--linea-fuerte); border-radius: 6px; padding: 7px 10px; width: 100%; min-height: 36px;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  input::placeholder { color: var(--tinta-3); }
+  input:hover, select:hover { border-color: var(--tinta-3); }
+  input:focus, select:focus { outline: none; border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+  input[aria-invalid="true"] { border-color: var(--error); }
+  .producto { display: grid; grid-template-columns: minmax(0, 1fr) 52px 90px 32px; gap: 6px; margin-top: 6px; }
+  .producto-titulos { display: grid; grid-template-columns: minmax(0, 1fr) 52px 90px 32px; gap: 6px; font-size: 0.75rem; color: var(--tinta-3); }
+  .subtotal { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--linea-fuerte); }
+  .subtotal span { color: var(--tinta-2); font-size: 0.875rem; }
+  .subtotal strong { font-size: 1.25rem; font-weight: 650; letter-spacing: -0.01em; }
+
+  button {
+    font: inherit; font-weight: 550; font-size: 0.875rem; border-radius: 6px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 14px;
+    border: 1px solid transparent; transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  .primario { background: var(--acento); color: #fff; }
+  .primario:hover:not(:disabled) { background: var(--acento-hover); }
+  .secundario { background: var(--superficie); color: var(--tinta); border-color: var(--linea-fuerte); }
+  .secundario:hover:not(:disabled) { background: var(--panel); }
+  .fantasma { background: transparent; color: var(--acento); padding: 0 6px; white-space: nowrap; }
+  .fantasma:hover { background: var(--acento-suave); }
+  .icono { padding: 0; width: 36px; color: var(--tinta-2); background: transparent; border-color: var(--linea); }
+  .icono:hover:not(:disabled) { color: var(--error); border-color: var(--error); background: var(--error-suave); }
+  .crear { width: 100%; margin-top: 16px; min-height: 40px; }
+  .aviso { margin-top: 12px; font-size: 0.8125rem; border-radius: 6px; padding: 8px 10px; display: none; }
+  .aviso.error { display: block; background: var(--error-suave); color: var(--error); }
+  .aviso.ok { display: block; background: var(--e-entregado-bg); color: var(--ok); }
+
+  /* Lista */
+  .estados { display: flex; gap: 4px; padding: 14px 20px 0; overflow-x: auto; scrollbar-width: none; }
+  .estados button { background: transparent; color: var(--tinta-2); border-color: transparent; padding: 0 12px; white-space: nowrap; }
+  .estados button:hover { background: var(--panel); color: var(--tinta); }
+  .estados button[aria-pressed="true"] { background: var(--tinta); color: var(--superficie); }
+  .estados .conteo { font-size: 0.75rem; font-weight: 600; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--panel); color: var(--tinta-2); line-height: 18px; }
+  .estados button[aria-pressed="true"] .conteo { background: oklch(100% 0 0 / 0.18); color: var(--superficie); }
+  .herramientas { display: flex; gap: 8px; padding: 12px 20px 14px; flex-wrap: wrap; border-bottom: 1px solid var(--linea); }
+  .buscar { position: relative; flex: 1 1 220px; }
+  .buscar svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; color: var(--tinta-3); }
+  .buscar input { padding-left: 32px; }
+  .herramientas select { width: auto; flex: 1 1 auto; min-width: 0; }
+
+  .tabla { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--linea-fuerte) transparent; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th { text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--tinta-2); padding: 10px 10px; background: var(--panel); border-bottom: 1px solid var(--linea); white-space: nowrap; }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th:first-child, td:first-child { padding-left: 20px; }
+  th:last-child, td:last-child { padding-right: 20px; text-align: right; }
+  tbody tr.pedido { transition: background-color 150ms; }
+  tbody tr.pedido:hover { background: oklch(98.6% 0.004 95); }
+  tr.nuevo { animation: nuevo 1.6s var(--ease); }
+  @keyframes nuevo { from { background: var(--acento-suave); } to { background: transparent; } }
+  td small, .tenue { display: block; color: var(--tinta-2); font-size: 0.8125rem; }
+  .total { font-weight: 600; white-space: nowrap; }
+  .fecha { white-space: nowrap; }
+  .nombre { font-weight: 550; }
+  .correo { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td[data-col="productos"] { min-width: 150px; }
+
+  .estado { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 7px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+  .estado::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .s-0 { color: var(--e-pendiente); background: var(--e-pendiente-bg); }
+  .s-1 { color: var(--e-proceso); background: var(--e-proceso-bg); }
+  .s-2 { color: var(--e-enviado); background: var(--e-enviado-bg); }
+  .s-3 { color: var(--e-entregado); background: var(--e-entregado-bg); }
+  .pasos { display: flex; gap: 3px; margin-top: 7px; }
+  .pasos i { width: 18px; height: 3px; border-radius: 2px; background: var(--linea); }
+  .pasos i.hecho { background: var(--tinta-3); }
+  .acciones { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .avanzar { white-space: nowrap; }
+  .fin { font-size: 0.8125rem; color: var(--ok); display: inline-flex; align-items: center; gap: 4px; min-height: 36px; }
+
+  tr.detalle td { background: var(--panel); padding-top: 14px; padding-bottom: 16px; text-align: left; }
+  .historial { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 28px; }
+  .historial li { display: grid; gap: 4px; justify-items: start; font-size: 0.8125rem; }
+  .detalle-info { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-bottom: 12px; font-size: 0.8125rem; color: var(--tinta-2); }
+  .detalle-info b { color: var(--tinta); font-weight: 600; }
+
+  .vacio { padding: 48px 20px; text-align: center; color: var(--tinta-2); }
+  .vacio svg { width: 28px; height: 28px; color: var(--tinta-3); margin-bottom: 8px; }
+  .vacio strong { display: block; color: var(--tinta); font-size: 0.9375rem; margin-bottom: 2px; }
+  .esqueleto td span { display: block; height: 12px; border-radius: 4px; background: linear-gradient(90deg, var(--panel), var(--linea), var(--panel)); background-size: 200% 100%; animation: brillo 1.2s linear infinite; }
+  @keyframes brillo { to { background-position: -200% 0; } }
+
+  /* Tabla como lista en pantallas angostas */
+  @media (max-width: 640px) {
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    tr.pedido { padding: 14px 16px; border-bottom: 1px solid var(--linea); display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; }
+    tr.pedido td { padding: 0 !important; border: 0; text-align: left !important; }
+    tr.pedido td[data-col="cliente"] { grid-area: 1 / 1; }
+    tr.pedido td[data-col="total"] { grid-area: 1 / 2; text-align: right !important; }
+    tr.pedido td[data-col="productos"] { grid-area: 2 / 1; min-width: 0; }
+    tr.pedido td[data-col="envio"] { grid-area: 2 / 2; text-align: right !important; color: var(--tinta-2); }
+    tr.pedido td[data-col="estado"] { grid-area: 3 / 1; }
+    tr.pedido td[data-col="fecha"] { grid-area: 3 / 2; text-align: right !important; }
+    tr.pedido td[data-col="acciones"] { grid-area: 4 / 1 / 5 / 3; }
+    tr.pedido td[data-col="acciones"] .acciones { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+    tr.detalle td { padding: 14px 16px !important; }
+    .producto, .producto-titulos { grid-template-columns: minmax(0, 1fr) 56px 92px 32px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-camion" viewBox="0 0 256 256"><path fill="currentColor" stroke="none" d="M255.42,117l-14-35A15.93,15.93,0,0,0,226.58,72H192V64a8,8,0,0,0-8-8H32A16,16,0,0,0,16,72V184a16,16,0,0,0,16,16H49a32,32,0,0,0,62,0h50a32,32,0,0,0,62,0h17a16,16,0,0,0,16-16V120A7.94,7.94,0,0,0,255.42,117ZM192,88h34.58l9.6,24H192ZM32,72H176v64H32ZM80,208a16,16,0,1,1,16-16A16,16,0,0,1,80,208Zm81-24H111a32,32,0,0,0-62,0H32V152H176v12.31A32.11,32.11,0,0,0,161,184Zm31,24a16,16,0,1,1,16-16A16,16,0,0,1,192,208Zm48-24H223a32.06,32.06,0,0,0-31-24V128h48Z"/></symbol>
+  <symbol id="i-caja" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-quitar" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-orden" viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-reloj" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+</svg>
+
+<header class="barra">
+  <div class="barra-in">
+    <div class="marca">
+      <div class="logo"><svg aria-hidden="true"><use href="#i-camion"/></svg></div>
+      <h1>Gestión de Pedidos</h1>
+    </div>
+    <span class="version" id="info">Conectando…</span>
+  </div>
+</header>
+
+<main>
+  <section class="tarjeta" aria-labelledby="t-nuevo">
+    <div class="cabeza">
+      <div>
+        <h2 id="t-nuevo">Nuevo pedido</h2>
+        <p>Queda en estado Pendiente al crearlo.</p>
+      </div>
+    </div>
+    <form id="form" novalidate>
+      <fieldset>
+        <legend>Cliente</legend>
+        <label class="campo"><span>Nombre</span><input name="nombre" required autocomplete="name"></label>
+        <div class="dos">
+          <label class="campo"><span>Correo</span><input name="correo" type="email" required autocomplete="email"></label>
+          <label class="campo"><span>Teléfono <i>(opcional)</i></span><input name="telefono" inputmode="tel" autocomplete="tel"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Envío</legend>
+        <label class="campo"><span>Dirección</span><input name="direccion" required autocomplete="street-address"></label>
+        <label class="campo"><span>Ciudad</span><input name="ciudad" required autocomplete="address-level2"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Productos</legend>
+        <div class="producto-titulos" aria-hidden="true"><span>Producto</span><span>Cant.</span><span>Precio unit.</span><span></span></div>
+        <div id="productos"></div>
+        <button type="button" class="fantasma" id="agregar" style="margin-top:8px"><svg><use href="#i-mas"/></svg>Agregar producto</button>
+      </fieldset>
+      <div class="subtotal"><span>Total del pedido</span><strong class="num" id="total">$ 0</strong></div>
+      <button type="submit" class="primario crear" id="crear">Crear pedido</button>
+      <div class="aviso" id="mensaje" role="status"></div>
+    </form>
+  </section>
+
+  <section class="tarjeta" aria-labelledby="t-lista">
+    <div class="cabeza">
+      <div>
+        <h2 id="t-lista">Pedidos</h2>
+        <p id="resumen">Cargando pedidos…</p>
+      </div>
+    </div>
+    <div class="estados" id="estados" role="group" aria-label="Filtrar por estado"></div>
+    <div class="herramientas">
+      <label class="buscar">
+        <svg><use href="#i-buscar"/></svg>
+        <input id="f-cliente" type="search" placeholder="Buscar por cliente" aria-label="Buscar por cliente">
+      </label>
+      <select id="f-orden-por" aria-label="Ordenar por">
+        <option value="fecha_creacion">Fecha de creación</option>
+        <option value="fecha_actualizacion">Última actualización</option>
+        <option value="estado">Estado</option>
+        <option value="total">Total</option>
+      </select>
+      <button type="button" class="secundario" id="f-orden" data-orden="desc" aria-label="Cambiar dirección del orden">
+        <svg><use href="#i-orden"/></svg><span>Descendente</span>
+      </button>
+    </div>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Cliente</th><th>Productos</th><th>Ciudad</th><th>Creado</th><th>Estado</th><th>Total</th><th>Siguiente paso</th></tr></thead>
+        <tbody id="lista"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const ESTADOS = ["Pendiente", "En Proceso", "Enviado", "Entregado"];
+const $ = (id) => document.getElementById(id);
+const icono = (n) => `<svg aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const pesos = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+const fecha = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+const dia = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short" });
+const hora = new Intl.DateTimeFormat("es-CO", { hour: "numeric", minute: "2-digit" });
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let filtroEstado = "";
+let abiertos = new Set();
+let recienCreado = null;
+
+/* ---------- Formulario ---------- */
+function agregarProducto() {
+  const fila = document.createElement("div");
+  fila.className = "producto";
+  fila.innerHTML = `<input placeholder="Nombre" aria-label="Producto" required>
+    <input type="number" min="1" value="1" aria-label="Cantidad" class="num" required>
+    <input type="number" min="1" step="any" placeholder="0" aria-label="Precio unitario" class="num" required>
+    <button type="button" class="icono" aria-label="Quitar producto">${icono("quitar")}</button>`;
+  fila.querySelector("button").onclick = () => { fila.remove(); actualizarQuitar(); calcularTotal(); };
+  $("productos").appendChild(fila);
+  actualizarQuitar();
+}
+function actualizarQuitar() {
+  const filas = $("productos").children;
+  [...filas].forEach((f) => (f.querySelector("button").disabled = filas.length === 1));
+}
+function leerProductos() {
+  return [...$("productos").children].map((d) => {
+    const [n, c, p] = d.querySelectorAll("input");
+    return { nombre: n.value.trim(), cantidad: Number(c.value), precio_unitario: Number(p.value) };
+  });
+}
+function calcularTotal() {
+  const total = leerProductos().reduce((s, p) => s + (p.cantidad > 0 && p.precio_unitario > 0 ? p.cantidad * p.precio_unitario : 0), 0);
+  $("total").textContent = pesos.format(total);
+}
+function aviso(texto, tipo) { $("mensaje").textContent = texto; $("mensaje").className = `aviso ${tipo}`; }
+
+$("productos").addEventListener("input", calcularTotal);
+$("agregar").onclick = () => { agregarProducto(); $("productos").lastElementChild.querySelector("input").focus(); };
+
+$("form").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const form = ev.target;
+  const invalidos = [...form.querySelectorAll("input[required]")].filter((i) => !i.checkValidity());
+  form.querySelectorAll("input").forEach((i) => i.removeAttribute("aria-invalid"));
+  if (invalidos.length) {
+    invalidos.forEach((i) => i.setAttribute("aria-invalid", "true"));
+    invalidos[0].focus();
+    aviso("Revisa los campos marcados en rojo: todos son obligatorios salvo el teléfono, y cantidad y precio deben ser mayores que cero.", "error");
+    return;
+  }
+  const f = form.elements;
+  const cuerpo = {
+    cliente: { nombre: f.nombre.value.trim(), correo: f.correo.value.trim(), telefono: f.telefono.value.trim() || null },
+    productos: leerProductos(),
+    direccion_envio: { direccion: f.direccion.value.trim(), ciudad: f.ciudad.value.trim() },
+  };
+  $("crear").disabled = true; $("crear").textContent = "Creando…";
+  try {
+    const r = await fetch("/pedidos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+    const datos = await r.json();
+    if (!r.ok) throw new Error(Array.isArray(datos.detail) ? datos.detail.map((d) => d.msg).join(". ") : datos.detail);
+    aviso(`Pedido de ${datos.cliente.nombre} creado por ${pesos.format(datos.total)}.`, "ok");
+    form.reset(); $("productos").innerHTML = ""; agregarProducto(); calcularTotal();
+    recienCreado = datos.id;
+    cargar();
+  } catch (e) {
+    aviso(`No se pudo crear el pedido: ${e.message}`, "error");
+  } finally {
+    $("crear").disabled = false; $("crear").textContent = "Crear pedido";
+  }
+};
+
+/* ---------- Lista ---------- */
+function pintarEstados(todos) {
+  const conteo = (e) => (e ? todos.filter((p) => p.estado === e).length : todos.length);
+  $("estados").innerHTML = ["", ...ESTADOS].map((e) =>
+    `<button type="button" data-estado="${e}" aria-pressed="${e === filtroEstado}">${e || "Todos"}<span class="conteo num">${conteo(e)}</span></button>`
+  ).join("");
+}
+$("estados").onclick = (ev) => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  filtroEstado = b.dataset.estado;
+  cargar();
+};
+
+function filaPedido(p) {
+  const i = ESTADOS.indexOf(p.estado);
+  const siguiente = ESTADOS[i + 1];
+  const pasos = ESTADOS.map((_, k) => `<i class="${k <= i ? "hecho" : ""}"></i>`).join("");
+  const abierto = abiertos.has(p.id);
+  const accion = siguiente
+    ? `<button type="button" class="secundario avanzar" data-avanzar="${p.id}" data-estado="${siguiente}" aria-label="Pasar a ${siguiente}">${siguiente}${icono("flecha")}</button>`
+    : `<span class="fin">${icono("check")}Completado</span>`;
+  let html = `<tr class="pedido${p.id === recienCreado ? " nuevo" : ""}">
+    <td data-col="cliente"><span class="nombre">${esc(p.cliente.nombre)}</span><small class="correo" title="${esc(p.cliente.correo)}">${esc(p.cliente.correo)}</small></td>
+    <td data-col="productos">${p.productos.map((x) => `<span class="num">${x.cantidad}</span> × ${esc(x.nombre)}`).join("<br>")}</td>
+    <td data-col="envio">${esc(p.direccion_envio.ciudad)}</td>
+    <td data-col="fecha" class="fecha num">${dia.format(new Date(p.fecha_creacion))}<small>${hora.format(new Date(p.fecha_creacion))}</small></td>
+    <td data-col="estado"><span class="estado s-${i}">${p.estado}</span><div class="pasos" aria-hidden="true">${pasos}</div></td>
+    <td data-col="total" class="total num">${pesos.format(p.total)}</td>
+    <td data-col="acciones"><div class="acciones">${accion}
+      <button type="button" class="fantasma" data-historial="${p.id}" aria-expanded="${abierto}">${icono("reloj")}${abierto ? "Ocultar historial" : "Ver historial"}</button></div></td>
+  </tr>`;
+  if (abierto) {
+    html += `<tr class="detalle"><td colspan="7">
+      <div class="detalle-info">
+        <span>Pedido <b class="num">${esc(p.id.slice(0, 8))}</b></span>
+        <span>Dirección de envío <b>${esc(p.direccion_envio.direccion)}, ${esc(p.direccion_envio.ciudad)}</b></span>
+        <span>Teléfono <b>${esc(p.cliente.telefono || "—")}</b></span>
+        <span>Última actualización <b class="num">${fecha.format(new Date(p.fecha_actualizacion))}</b></span>
+      </div>
+      <ol class="historial">${p.historial.map((h) =>
+        `<li><span class="estado s-${ESTADOS.indexOf(h.estado)}">${h.estado}</span><span class="tenue num">${fecha.format(new Date(h.fecha))}</span></li>`).join("")}</ol>
+    </td></tr>`;
+  }
+  return html;
+}
+
+function vacio(hayPedidos) {
+  const [titulo, texto] = hayPedidos
+    ? ["Ningún pedido coincide", "Prueba con otro estado o borra la búsqueda."]
+    : ["Todavía no hay pedidos", "Crea el primero con el formulario y aparecerá aquí."];
+  return `<tr><td colspan="7" class="vacio">${icono("caja")}<strong>${titulo}</strong>${texto}</td></tr>`;
+}
+
+async function cargar() {
+  const params = new URLSearchParams({ ordenar_por: $("f-orden-por").value, orden: $("f-orden").dataset.orden });
+  const cliente = $("f-cliente").value.trim();
+  if (filtroEstado) params.set("estado", filtroEstado);
+  if (cliente) params.set("cliente", cliente);
+  try {
+    const [lista, todos] = await Promise.all([
+      fetch(`/pedidos?${params}`).then((r) => r.json()),
+      fetch("/pedidos").then((r) => r.json()),
+    ]);
+    pintarEstados(todos);
+    $("lista").innerHTML = lista.length ? lista.map(filaPedido).join("") : vacio(todos.length > 0);
+    const filtrado = filtroEstado || cliente;
+    $("resumen").textContent = filtrado
+      ? `${lista.length} de ${todos.length} pedidos`
+      : `${todos.length} ${todos.length === 1 ? "pedido" : "pedidos"} · ${pesos.format(todos.reduce((s, p) => s + p.total, 0))} en total`;
+    recienCreado = null;
+  } catch {
+    $("lista").innerHTML = `<tr><td colspan="7" class="vacio"><strong>No se pudo cargar la lista</strong>Revisa que la API esté encendida y recarga la página.</td></tr>`;
+    $("resumen").textContent = "Sin conexión con la API";
+  }
+}
+
+$("lista").onclick = async (ev) => {
+  const avanzar = ev.target.closest("[data-avanzar]");
+  const historial = ev.target.closest("[data-historial]");
+  if (historial) {
+    const id = historial.dataset.historial;
+    abiertos.has(id) ? abiertos.delete(id) : abiertos.add(id);
+    return cargar();
+  }
+  if (!avanzar) return;
+  avanzar.disabled = true;
+  const r = await fetch(`/pedidos/${avanzar.dataset.avanzar}/estado`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ estado: avanzar.dataset.estado }),
+  });
+  if (!r.ok) alert((await r.json()).detail);
+  cargar();
+};
+
+let espera;
+$("f-cliente").oninput = () => { clearTimeout(espera); espera = setTimeout(cargar, 200); };
+$("f-orden-por").onchange = cargar;
+$("f-orden").onclick = () => {
+  const b = $("f-orden");
+  b.dataset.orden = b.dataset.orden === "desc" ? "asc" : "desc";
+  b.querySelector("span").textContent = b.dataset.orden === "desc" ? "Descendente" : "Ascendente";
+  cargar();
+};
+
+fetch("/").then((r) => r.json())
+  .then((d) => ($("info").innerHTML = `Versión <span class="num">${esc(d.version)}</span>`))
+  .catch(() => { $("info").textContent = "API sin conexión"; $("info").classList.add("caido"); });
+
+$("lista").innerHTML = Array.from({ length: 3 }, () =>
+  `<tr class="esqueleto">${"<td><span></span></td>".repeat(7)}</tr>`).join("");
+agregarProducto();
+cargar();
+</script>
+</body>
+</html>
