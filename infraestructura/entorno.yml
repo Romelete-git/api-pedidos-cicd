@@ -14,6 +14,9 @@ Parameters:
   RolServicio:
     Type: String
     Default: aws-elasticbeanstalk-service-role
+    Description: >
+      ARN completo del rol de servicio (IAM > Roles > Summary). Si el rol esta en
+      la carpeta service-role/, el nombre solo no funciona.
   PerfilInstancia:
     Type: String
     Default: aws-elasticbeanstalk-ec2-role
@@ -54,6 +57,10 @@ Resources:
         - Namespace: aws:ec2:instances
           OptionName: InstanceTypes
           Value: t3.micro
+        # Monitoreo básico de salud: no depende del rol de servicio
+        - Namespace: aws:elasticbeanstalk:healthreporting:system
+          OptionName: SystemType
+          Value: basic
 
 Outputs:
   Direccion:
